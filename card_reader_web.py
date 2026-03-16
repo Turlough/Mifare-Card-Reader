@@ -163,9 +163,26 @@ HTML_TEMPLATE = """
         }
         .copy-btn:hover { background: #ff6b6b; }
         .copy-btn.copied { background: #22543d; }
+        .navbar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #0f3460;
+        }
+        .navbar a {
+            color: #e94560;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        .navbar a:hover { color: #ff6b6b; }
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <a href="http://doors" target="_blank" rel="noopener noreferrer">Doors</a>
+    </nav>
     <h1>Mifare Card Reader</h1>
     <div class="card-box" id="card-box">
         <div id="status" class="status waiting">Place a card on the reader...</div>
