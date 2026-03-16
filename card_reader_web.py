@@ -108,7 +108,7 @@ HTML_TEMPLATE = """
         h1 {
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
-            color: #0f3460;
+            color: #444;
         }
         .card-box {
             background: #16213e;
@@ -134,6 +134,15 @@ HTML_TEMPLATE = """
         .status.waiting { background: #0f3460; color: #a0aec0; }
         .status.read { background: #22543d; color: #9ae6b4; }
         .status.error { background: #742a2a; color: #feb2b2; }
+        .card-list {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            border: 1px solid #0f3460;
+        }
+        .card-list-title { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .card-list-items { padding-left: 1.5rem; margin: 0; }
+        .card-list-items li { padding: 0.25rem 0; color: #bbbb44; font-family: monospace; font-size: 1.05rem; }
     </style>
 </head>
 <body>
@@ -149,12 +158,28 @@ HTML_TEMPLATE = """
             <div id="card-number" class="card-number"></div>
         </div>
     </div>
+    <div class="card-list">
+        <div class="card-list-title">Cards read</div>
+        <ol id="card-list-items" class="card-list-items"></ol>
+    </div>
     <script>
         const statusEl = document.getElementById('status');
         const cardInfo = document.getElementById('card-info');
         const cardTypeEl = document.getElementById('card-type');
         const uidEl = document.getElementById('uid');
         const cardNumberEl = document.getElementById('card-number');
+        const cardListEl = document.getElementById('card-list-items');
+
+        const cardsRead = [];
+
+        function renderCardList() {
+            cardListEl.innerHTML = '';
+            cardsRead.forEach(n => {
+                const li = document.createElement('li');
+                li.textContent = n;
+                cardListEl.appendChild(li);
+            });
+        }
 
         async function poll() {
             try {
@@ -168,6 +193,11 @@ HTML_TEMPLATE = """
                     cardTypeEl.textContent = c.card_type;
                     uidEl.textContent = c.uid;
                     cardNumberEl.textContent = c.card_number ?? '(could not derive)';
+                    if (data.status === 'new_card') {
+                        const n = c.card_number != null ? String(c.card_number) : c.uid;
+                        cardsRead.push(n);
+                        renderCardList();
+                    }
                 } else if (data.status === 'no_card') {
                     statusEl.textContent = 'Place a card on the reader...';
                     statusEl.className = 'status waiting';
