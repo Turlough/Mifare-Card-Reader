@@ -6,6 +6,7 @@ Run: python card_reader_web.py
 Then open http://127.0.0.1:5000 in a browser.
 """
 
+import os
 import sys
 from threading import Lock
 
@@ -294,7 +295,9 @@ def main():
     print("Place a card on the reader to see it detected.")
     print()
 
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+    host = os.environ.get("FLASK_HOST", "127.0.0.1")
+    port = int(os.environ.get("FLASK_PORT", "5000"))
+    app.run(host=host, port=port, debug=False, use_reloader=False)
 
 
 if __name__ == "__main__":

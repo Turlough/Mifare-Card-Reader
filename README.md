@@ -49,6 +49,18 @@ python card_reader_web.py
 
 Then open **http://127.0.0.1:5000** in your browser. Place a card on the reader to see it detected; the card number is automatically copied to the clipboard.
 
+### Docker
+
+Run the web app in a container:
+
+```bash
+docker compose up --build
+```
+
+Then open **http://localhost:5000** in your browser.
+
+On Linux with a USB card reader, add your device to `docker-compose.yml` under `devices` (find the path with `lsusb` or `ls /dev/bus/usb/`).
+
 ## How It Works
 
 - Uses the **pyscard** library to communicate with PC/SC readers

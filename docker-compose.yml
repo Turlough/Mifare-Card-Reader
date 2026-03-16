@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+    # For Linux hosts with a USB card reader: uncomment to pass through the device.
+    # Find your reader with: lsusb or ls /dev/bus/usb/
+    # devices:
+    #   - "/dev/bus/usb/001/002"  # Replace with your reader's device path
+    # Alternatively, use privileged mode (less secure) for full USB access:
+    # privileged: true
+    # Restart policy for development
+    restart: unless-stopped
