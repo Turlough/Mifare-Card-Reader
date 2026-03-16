@@ -9,6 +9,7 @@ Then open http://127.0.0.1:5000 in a browser.
 import sys
 from threading import Lock
 
+import pyperclip
 from flask import Flask, jsonify, render_template_string
 from smartcard.System import readers
 from smartcard.util import toHexString
@@ -72,6 +73,11 @@ def _try_read_card():
                 if uid_str != _last_uid:
                     _last_uid = uid_str
                     _last_card_data = data
+                    to_copy = str(card_number) if card_number is not None else uid_str
+                    try:
+                        pyperclip.copy(to_copy)
+                    except pyperclip.PyperclipException:
+                        pass
                     return {"status": "new_card", "card": data}
                 return {"status": "same_card", "card": data}
 
@@ -117,6 +123,7 @@ HTML_TEMPLATE = """
             margin-bottom: 1rem;
             border: 1px solid #0f3460;
         }
+        .card-box.has-card { cursor: pointer; }
         .card-number {
             font-size: 2rem;
             font-weight: 700;
@@ -143,11 +150,23 @@ HTML_TEMPLATE = """
         .card-list-title { color: #8892b0; font-size: 0.85rem; margin-bottom: 0.5rem; }
         .card-list-items { padding-left: 1.5rem; margin: 0; }
         .card-list-items li { padding: 0.25rem 0; color: #bbbb44; font-family: monospace; font-size: 1.05rem; }
+        .copy-row { display: flex; align-items: center; gap: 0.75rem; margin: 0.5rem 0; flex-wrap: wrap; }
+        .copy-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .copy-btn:hover { background: #ff6b6b; }
+        .copy-btn.copied { background: #22543d; }
     </style>
 </head>
 <body>
     <h1>Mifare Card Reader</h1>
-    <div class="card-box">
+    <div class="card-box" id="card-box">
         <div id="status" class="status waiting">Place a card on the reader...</div>
         <div id="card-info" style="display:none;">
             <div class="label">Card Type</div>
@@ -155,7 +174,10 @@ HTML_TEMPLATE = """
             <div class="label">UID</div>
             <div id="uid"></div>
             <div class="label">Card Number</div>
-            <div id="card-number" class="card-number"></div>
+            <div class="copy-row">
+                <div id="card-number" class="card-number"></div>
+                <button type="button" id="copy-btn" class="copy-btn">Copy</button>
+            </div>
         </div>
     </div>
     <div class="card-list">
@@ -169,8 +191,26 @@ HTML_TEMPLATE = """
         const uidEl = document.getElementById('uid');
         const cardNumberEl = document.getElementById('card-number');
         const cardListEl = document.getElementById('card-list-items');
+        const copyBtn = document.getElementById('copy-btn');
+        const cardBox = document.getElementById('card-box');
 
         const cardsRead = [];
+        let currentCardValue = null;
+
+        function copyToClipboard() {
+            if (!currentCardValue) return;
+            navigator.clipboard.writeText(currentCardValue).then(() => {
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.classList.remove('copied');
+                }, 1500);
+            }).catch(() => {});
+        }
+
+        copyBtn.addEventListener('click', (e) => { e.stopPropagation(); copyToClipboard(); });
+        cardBox.addEventListener('click', () => { if (currentCardValue) copyToClipboard(); });
 
         function renderCardList() {
             cardListEl.innerHTML = '';
@@ -187,12 +227,17 @@ HTML_TEMPLATE = """
                 const data = await r.json();
                 if (data.status === 'new_card' || data.status === 'same_card') {
                     const c = data.card;
-                    statusEl.textContent = 'Card detected';
+                    currentCardValue = c.card_number != null ? String(c.card_number) : c.uid;
+                    statusEl.textContent = data.status === 'new_card'
+                        ? 'Card detected (copied to clipboard)'
+                        : 'Card detected';
                     statusEl.className = 'status read';
                     cardInfo.style.display = 'block';
                     cardTypeEl.textContent = c.card_type;
                     uidEl.textContent = c.uid;
                     cardNumberEl.textContent = c.card_number ?? '(could not derive)';
+                    copyBtn.style.display = 'inline-block';
+                    cardBox.classList.add('has-card');
                     if (data.status === 'new_card') {
                         const n = c.card_number != null ? String(c.card_number) : c.uid;
                         cardsRead.push(n);
@@ -202,6 +247,9 @@ HTML_TEMPLATE = """
                     statusEl.textContent = 'Place a card on the reader...';
                     statusEl.className = 'status waiting';
                     cardInfo.style.display = 'none';
+                    currentCardValue = null;
+                    cardBox.classList.remove('has-card');
+                    copyBtn.style.display = 'none';
                 } else {
                     statusEl.textContent = 'Error: ' + (data.message || 'Unknown');
                     statusEl.className = 'status error';
